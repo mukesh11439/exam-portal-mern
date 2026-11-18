@@ -44,6 +44,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | --- | --- | --- | --- |
 | `POST` | `/auth/register` | Public | Register a student |
 | `POST` | `/auth/login` | Public | Sign in and receive a JWT and profile |
+| `PATCH` | `/auth/change-password` | Signed in | Change password after verifying the current password |
 | `GET` | `/auth/users` | Admin | List users |
 | `PATCH` | `/auth/users/:id/status` | Admin | Toggle user active status |
 | `GET` | `/exams?search=&subject=&page=&limit=` | Signed in | Search/paginate exams; students do not receive answer keys |

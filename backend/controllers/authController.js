@@ -48,6 +48,32 @@ async function login(req, res, next) {
   }
 }
 
+async function changePassword(req, res, next) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new passwords are required' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters' });
+    }
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: 'New password must be different from the current password' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user || !(await user.matchPassword(currentPassword))) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+    return res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function getUsers(req, res, next) {
   try {
     const users = await User.find().select('-password').sort({ createdAt: -1 }).lean();
@@ -72,5 +98,5 @@ async function toggleUserStatus(req, res, next) {
   }
 }
 
-module.exports = { register, login, getUsers, toggleUserStatus };
+module.exports = { register, login, changePassword, getUsers, toggleUserStatus };
 
