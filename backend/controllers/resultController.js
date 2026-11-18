@@ -14,6 +14,66 @@ async function getMyResults(req, res, next) {
   }
 }
 
+async function getLearningInsights(req, res, next) {
+  try {
+    const results = await Result.find({ student: req.user._id }).sort({ createdAt: -1 }).lean();
+    const examIds = [...new Set(results.map((result) => String(result.exam)))];
+    const exams = await Exam.find({ _id: { $in: examIds } })
+      .select('title subject questions.questionText questions.topic questions.explanation questions.options questions.correctOptionIndex')
+      .lean();
+    const examById = new Map(exams.map((exam) => [String(exam._id), exam]));
+    const topics = new Map();
+    const mistakes = [];
+
+    results.forEach((result) => {
+      const exam = examById.get(String(result.exam));
+      if (!exam) return;
+      const questions = new Map(exam.questions.map((question) => [String(question._id), question]));
+
+      result.answers.forEach((answer) => {
+        const question = questions.get(String(answer.question));
+        if (!question || answer.selectedOptionIndex === null || answer.selectedOptionIndex === undefined) return;
+        const topic = question.topic || exam.subject || 'General';
+        const stats = topics.get(topic) || { topic, attempts: 0, correct: 0, marksEarned: 0, possibleMarks: 0 };
+        stats.attempts += 1;
+        stats.possibleMarks += question.marks;
+        stats.marksEarned += answer.marksAwarded;
+        if (answer.isCorrect) {
+          stats.correct += 1;
+        } else {
+          mistakes.push({
+            exam: exam.title,
+            subject: exam.subject,
+            topic,
+            question: question.questionText,
+            selectedAnswer: question.options[answer.selectedOptionIndex],
+            correctAnswer: question.options[question.correctOptionIndex],
+            explanation: question.explanation,
+            submittedAt: result.createdAt
+          });
+        }
+        topics.set(topic, stats);
+      });
+    });
+
+    const topicStats = [...topics.values()]
+      .map((stats) => ({
+        ...stats,
+        mastery: stats.possibleMarks
+          ? Number(((stats.marksEarned / stats.possibleMarks) * 100).toFixed(1))
+          : 0
+      }))
+      .sort((a, b) => a.mastery - b.mastery || b.attempts - a.attempts);
+    return res.json({
+      topics: topicStats,
+      weakTopic: topicStats.find((topic) => topic.mastery < 70) || null,
+      mistakes: mistakes.slice(0, 30)
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function getLeaderboard(req, res, next) {
   try {
     const filter = {};
@@ -116,5 +176,5 @@ async function exportResults(req, res, next) {
   }
 }
 
-module.exports = { getMyResults, getLeaderboard, getAnalytics, exportResults };
+module.exports = { getMyResults, getLearningInsights, getLeaderboard, getAnalytics, exportResults };
 

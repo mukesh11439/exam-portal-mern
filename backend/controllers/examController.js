@@ -22,7 +22,7 @@ async function getExams(req, res, next) {
 
     const [items, total] = await Promise.all([
       Exam.find(filter)
-        .select(req.user.role === 'student' ? '-questions.correctOptionIndex' : '')
+        .select(req.user.role === 'student' ? '-questions.correctOptionIndex -questions.explanation' : '')
         .populate('createdBy', 'name')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
@@ -39,7 +39,7 @@ async function getExams(req, res, next) {
 async function getExamById(req, res, next) {
   try {
     const exam = await Exam.findById(req.params.id)
-      .select(req.user.role === 'student' ? '-questions.correctOptionIndex' : '')
+      .select(req.user.role === 'student' ? '-questions.correctOptionIndex -questions.explanation' : '')
       .populate('createdBy', 'name')
       .lean();
     if (!exam || (req.user.role === 'student' && !exam.isPublished)) {
@@ -57,6 +57,8 @@ function validateExamInput(body) {
   }
   const questions = body.questions.map((question) => ({
     questionText: String(question.questionText || '').trim(),
+    topic: String(question.topic || '').trim(),
+    explanation: String(question.explanation || '').trim(),
     options: Array.isArray(question.options) ? question.options.map(String) : [],
     correctOptionIndex: Number(question.correctOptionIndex),
     marks: Number(question.marks) || 1
@@ -119,6 +121,8 @@ function parseQuestionCSV(filePath) {
         const index = /^\d+$/.test(answer) ? Number(answer) : options.indexOf(answer);
         questions.push({
           questionText: String(row.questionText || '').trim(),
+          topic: String(row.topic || '').trim(),
+          explanation: String(row.explanation || '').trim(),
           options,
           correctOptionIndex: index,
           marks: Number(row.marks) || 1
@@ -147,7 +151,7 @@ async function uploadQuestionsCSV(req, res, next) {
       question.marks < 1
     )) {
       return res.status(400).json({
-        message: 'CSV rows need questionText, option1, option2, optional option3/option4, correctOptionIndex (zero-based or option text), and optional marks'
+        message: 'CSV rows need questionText, option1, option2, optional option3/option4/topic/explanation/marks, and correctOptionIndex (zero-based or option text)'
       });
     }
     exam.questions.push(...questions);

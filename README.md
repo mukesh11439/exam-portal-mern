@@ -5,7 +5,8 @@ Examly is a role-based MERN application for delivering multiple-choice exams, au
 ## Features
 
 - **Students:** searchable/paginated published exams, timed assessments, automatic grading, results history, analytics, leaderboard, and PDF scorecards.
-- **Faculty:** create and publish MCQ exams, import questions from CSV, and export exam results.
+- **Students:** topic-level Revision Coach and a Mistake Notebook with incorrect answers and faculty explanations after submission.
+- **Faculty:** create and publish MCQ exams, tag questions by topic, add answer explanations, import questions from CSV, and export exam results.
 - **Administrators:** system overview, account activation controls, and exam monitoring.
 - **Platform:** JWT authentication, bcrypt password hashing, role-based access control, persisted light/dark theme, responsive UI, and centralized API errors.
 
@@ -53,12 +54,13 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | `POST` | `/exams/:id/questions/csv` | Exam owner/Admin | Append questions from a CSV multipart file (`file`) |
 | `POST` | `/exams/:id/submit` | Student | Submit answers for one-time automatic grading |
 | `GET` | `/results/mine` | Student | List own results |
+| `GET` | `/results/learning-insights` | Student | Topic mastery and post-submission mistake review |
 | `GET` | `/results/leaderboard?examId=` | Signed in | Global or exam leaderboard |
 | `GET` | `/results/analytics` | Signed in | Role-aware dashboard summaries and chart data |
 | `GET` | `/results/export?examId=` | Faculty/Admin | Export permitted exam results as CSV |
 | `GET` | `/api/health` | Public | Health check |
 
-CSV uploads expect headers `questionText,option1,option2,option3,option4,correctOptionIndex,marks`. `option3`, `option4`, and `marks` are optional; correct answers can be represented by a zero-based index or the exact option text.
+CSV uploads expect headers `questionText,option1,option2,option3,option4,correctOptionIndex,marks,topic,explanation`. `option3`, `option4`, `marks`, `topic`, and `explanation` are optional; correct answers can be represented by a zero-based index or the exact option text. Question explanations are only returned to students after exam submission.
 
 ## Local setup
 

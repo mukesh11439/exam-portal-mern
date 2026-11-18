@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const questionSchema = new mongoose.Schema(
   {
     questionText: { type: String, required: true, trim: true },
+    topic: { type: String, trim: true, default: '' },
+    explanation: { type: String, trim: true, default: '' },
     options: {
       type: [String],
       validate: {
